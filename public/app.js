@@ -2,7 +2,7 @@
 // Talks only to existing GET endpoints: /api/health and /api/agent/feed.
 // Never calls /api/agent/init or /api/agent/tick — this UI must not mutate agent state.
 
-const POLL_INTERVAL_MS = 30000;
+const POLL_INTERVAL_MS = 8000;
 
 const el = {
   statusPill: document.getElementById('status-pill'),
@@ -17,6 +17,14 @@ const el = {
   feedState: document.getElementById('feed-state'),
   feedList: document.getElementById('feed-list'),
   refreshBtn: document.getElementById('refresh-btn'),
+  cycleBadge: document.getElementById('cycle-badge'),
+  cycleMetrics: document.getElementById('cycle-metrics'),
+  cmDiscovered: document.getElementById('cm-discovered'),
+  cmEvaluated: document.getElementById('cm-evaluated'),
+  cmAccepted: document.getElementById('cm-accepted'),
+  cmRejected: document.getElementById('cm-rejected'),
+  cmDupes: document.getElementById('cm-dupes'),
+  cmDuration: document.getElementById('cm-duration'),
 };
 
 let cachedAgentId = null;
@@ -86,6 +94,50 @@ function drawTrace(metrics) {
   el.traceLine.setAttribute('points', points.join(' '));
 }
 
+// Map cycleStatus to human-readable labels
+const CYCLE_LABELS = {
+  idle: 'Waiting for first autonomous cycle…',
+  running: 'Cycle running…',
+  published: '✓ Published',
+  all_rejected: 'All candidates rejected',
+  no_topics: 'No topics discovered',
+  error: 'Cycle error',
+  not_initialized: 'Not initialized',
+};
+
+function renderCycleStatus(health) {
+  const status = health.cycleStatus || 'idle';
+  const label = CYCLE_LABELS[status] || status;
+
+  // Update badge text and class
+  el.cycleBadge.textContent = label;
+  el.cycleBadge.className = 'cycle-badge';
+  el.cycleBadge.classList.add(`status-${status}`);
+
+  // If we have had at least one run but status is idle, show the last status instead
+  if (status === 'idle' && health.lastTickMetrics) {
+    const lastStatus = health.lastTickMetrics.status || 'idle';
+    const lastLabel = CYCLE_LABELS[lastStatus] || lastStatus;
+    el.cycleBadge.textContent = lastLabel;
+    el.cycleBadge.className = 'cycle-badge';
+    el.cycleBadge.classList.add(`status-${lastStatus}`);
+  }
+
+  // Show metrics if available
+  const m = health.lastTickMetrics;
+  if (m && m.discoveredCount !== undefined) {
+    el.cycleMetrics.hidden = false;
+    el.cmDiscovered.textContent = String(m.discoveredCount);
+    el.cmEvaluated.textContent = String(m.evaluatedCount);
+    el.cmAccepted.textContent = String(m.acceptedCount);
+    el.cmRejected.textContent = String(m.rejectedCount);
+    el.cmDupes.textContent = String(m.skippedDuplicatesCount);
+    el.cmDuration.textContent = m.durationMs != null ? `${(m.durationMs / 1000).toFixed(1)}s` : '—';
+  } else if (status === 'running') {
+    el.cycleMetrics.hidden = true;
+  }
+}
+
 function renderTelemetry(health) {
   const schedulerOn = !!health.schedulerActive;
   el.telScheduler.textContent = schedulerOn ? 'Active' : 'Idle';
@@ -105,6 +157,7 @@ function renderTelemetry(health) {
     setStatusPill('down', 'Not initialized');
   }
 
+  renderCycleStatus(health);
   drawTrace(health.lastTickMetrics);
 }
 
@@ -114,6 +167,21 @@ function sourceHost(url) {
   } catch {
     return url;
   }
+}
+
+function formatRationale(raw) {
+  if (!raw) return '';
+  // Try to detect and format the 3-pillar rationale structure
+  // Look for numbered patterns like "1." "2." "3." or "Why selected" etc.
+  let formatted = raw;
+
+  // If the rationale contains numbered sections, add line breaks for readability
+  formatted = formatted.replace(/(\d+\.\s*(?:Why\s+\w+|Topic\s+Selection|Relevance|Editorial))/gi, '\n$1');
+
+  // Clean up leading newline
+  formatted = formatted.replace(/^\n/, '');
+
+  return formatted;
 }
 
 function renderPost(post) {
@@ -146,7 +214,7 @@ function renderPost(post) {
     label.textContent = 'Editorial rationale';
     const body = document.createElement('div');
     body.className = 'rationale-body';
-    body.textContent = post.rationale;
+    body.textContent = formatRationale(post.rationale);
     rationale.append(label, body);
     li.appendChild(rationale);
   }

@@ -24,7 +24,7 @@ export function createRouter(
       });
 
       // Start autonomous scheduler if not active
-      schedulerService.start();
+      schedulerService.start({ immediateFirstTick: true });
 
       res.status(200).json({ agentId: result.agentId });
     } catch (err) {
@@ -69,6 +69,7 @@ export function createRouter(
         initialized: state.initialized,
         agentId: state.agentId,
         schedulerActive: schedulerService.isTimerActive(),
+        cycleStatus: schedulerService.getCycleStatus(),
         memoryProvider: memoryService.getProviderName(),
         llmProvider: llmProvider.name,
         lastRunAt: state.lastRunAt || null,

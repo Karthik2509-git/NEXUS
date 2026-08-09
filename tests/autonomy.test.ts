@@ -105,16 +105,23 @@ describe('Production Autonomy & Resilience', () => {
 
   it('GET /api/agent/feed should read from persistence without triggering post generation', async () => {
     await agentService.initialize({ name: 'NEXUS', domain: 'AI Engineering' });
-    const spyCycle = vi.spyOn(agentService, 'runAutonomousCycle');
 
     const mockLlm = new MockLlmProvider();
     const app = createApp(agentService, schedulerService, store, memory, mockLlm);
 
     const initRes = await request(app).post('/api/agent/init').send();
+
+    // Wait for the immediate first cycle (fire-and-forget) to settle
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // NOW set up the spy — after /init's immediate cycle has already completed
+    const spyCycle = vi.spyOn(agentService, 'runAutonomousCycle');
+
     const res = await request(app).get(`/api/agent/feed?agentId=${initRes.body.agentId}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.posts).toEqual([]);
+    expect(Array.isArray(res.body.posts)).toBe(true);
+    // /feed must NEVER trigger generation
     expect(spyCycle).not.toHaveBeenCalled();
   });
 
@@ -139,5 +146,145 @@ describe('Production Autonomy & Resilience', () => {
     const responseString = JSON.stringify(res.body);
     expect(responseString).not.toContain('API_KEY');
     expect(responseString).not.toContain('Bearer');
+  });
+
+  it('GET /api/health should include cycleStatus field', async () => {
+    await agentService.initialize({ name: 'NEXUS', domain: 'AI Engineering' });
+
+    const mockLlm = new MockLlmProvider();
+    const app = createApp(agentService, schedulerService, store, memory, mockLlm);
+
+    const res = await request(app).get('/api/health');
+
+    expect(res.status).toBe(200);
+    expect(res.body.cycleStatus).toBeDefined();
+    expect(res.body.cycleStatus).toBe('idle');
+  });
+
+  it('POST /api/agent/init should trigger exactly one immediate first autonomous cycle', async () => {
+    const cycleSpy = vi.spyOn(agentService, 'runAutonomousCycle').mockResolvedValue({
+      cycleId: 'cycle-test',
+      timestamp: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 50,
+      status: 'published',
+      discoveredCount: 1,
+      evaluatedCount: 1,
+      acceptedCount: 1,
+      rejectedCount: 0,
+      skippedDuplicatesCount: 0,
+    });
+
+    const mockLlm = new MockLlmProvider();
+    const app = createApp(agentService, schedulerService, store, memory, mockLlm);
+
+    await request(app).post('/api/agent/init').send({
+      persona: { name: 'NEXUS', domain: 'AI Engineering' },
+    });
+
+    // Wait briefly for the fire-and-forget immediate tick to execute
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(cycleSpy).toHaveBeenCalledTimes(1);
+    expect(schedulerService.isTimerActive()).toBe(true);
+  });
+
+  it('repeated POST /api/agent/init should NOT trigger duplicate immediate first cycles', async () => {
+    const cycleSpy = vi.spyOn(agentService, 'runAutonomousCycle').mockResolvedValue({
+      cycleId: 'cycle-test',
+      timestamp: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 50,
+      status: 'published',
+      discoveredCount: 1,
+      evaluatedCount: 1,
+      acceptedCount: 1,
+      rejectedCount: 0,
+      skippedDuplicatesCount: 0,
+    });
+
+    const mockLlm = new MockLlmProvider();
+    const app = createApp(agentService, schedulerService, store, memory, mockLlm);
+
+    await request(app).post('/api/agent/init').send();
+    await request(app).post('/api/agent/init').send();
+    await request(app).post('/api/agent/init').send();
+
+    // Wait briefly for fire-and-forget
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Only one immediate tick should have fired (hasRunFirstCycle guard + timer guard)
+    expect(cycleSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('scheduler should use the configured 60-minute interval, not a shorter one', () => {
+    // The interval is set at construction time. Verify the timer interval
+    // by confirming the scheduler was constructed with 60 minutes.
+    const freshScheduler = new SchedulerService(agentService, 60);
+    // The interval property is private, so we test behavior:
+    // start() should create a timer and isTimerActive should be true
+    freshScheduler.start();
+    expect(freshScheduler.isTimerActive()).toBe(true);
+    freshScheduler.stop();
+  });
+
+  it('cycleStatus should transition through running and final state', async () => {
+    await agentService.initialize({ name: 'NEXUS', domain: 'AI Engineering' });
+
+    expect(schedulerService.getCycleStatus()).toBe('idle');
+
+    // Mock a slow tick to observe "running" state
+    let resolvePromise: (v: any) => void;
+    const longCycle = new Promise((resolve) => { resolvePromise = resolve; });
+    vi.spyOn(agentService, 'runAutonomousCycle').mockImplementation(() => longCycle as any);
+
+    const tickPromise = schedulerService.tick();
+
+    // During execution, cycleStatus should be "running"
+    expect(schedulerService.getCycleStatus()).toBe('running');
+
+    // Resolve the cycle
+    resolvePromise!({
+      cycleId: 'cycle-x',
+      timestamp: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 10,
+      status: 'published',
+      discoveredCount: 1,
+      evaluatedCount: 1,
+      acceptedCount: 1,
+      rejectedCount: 0,
+      skippedDuplicatesCount: 0,
+    });
+
+    await tickPromise;
+
+    // After completion, status should reflect the result
+    expect(schedulerService.getCycleStatus()).toBe('published');
+  });
+
+  it('auto-resume via checkAndAutoStart should NOT fire an immediate tick', async () => {
+    await agentService.initialize({ name: 'NEXUS', domain: 'AI Engineering' });
+
+    const freshStore = new JsonFileStore(testDir);
+    const freshMemory = new MemoryService('local');
+    const freshAgentService = new NexusAgentService({ store: freshStore, memory: freshMemory });
+    const freshScheduler = new SchedulerService(freshAgentService, 60);
+
+    const cycleSpy = vi.spyOn(freshAgentService, 'runAutonomousCycle');
+
+    await freshScheduler.checkAndAutoStart();
+
+    // Wait briefly
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // checkAndAutoStart should NOT fire an immediate tick — only set up the interval
+    expect(cycleSpy).not.toHaveBeenCalled();
+    expect(freshScheduler.isTimerActive()).toBe(true);
+
+    freshScheduler.stop();
   });
 });

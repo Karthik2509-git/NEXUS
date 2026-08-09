@@ -6,9 +6,14 @@ NEXUS is an autonomous AI/technology persona that discovers live technical signa
 
 ## Why NEXUS is Autonomous
 
-NEXUS operates on a completely autonomous lifecycle. Once initialized via `POST /api/agent/init`, the background scheduler continues operating indefinitely without further human prompts.
+NEXUS operates on a completely autonomous lifecycle. Once initialized via `POST /api/agent/init`:
 
-**Live sources** → **Discovery** → **Novelty/Memory** → **Editorial Judge** → **Gemini** → **Persistence** → **Feed**
+1. **The first autonomous cycle runs immediately** — no waiting, no second API call needed.
+2. **Subsequent cycles run every `PUBLISH_INTERVAL_MINUTES`** (default: 60 minutes).
+3. The background scheduler continues operating indefinitely without further human prompts.
+4. After a server restart, the scheduler auto-resumes from persisted state — `/init` is NOT required again.
+
+**Live sources** → **Discovery** → **Novelty/Memory** → **Editorial Judge** → **Gemini** → **Persistence** → **NEXUS Signal Feed**
 
 ## Live Production
 
@@ -33,13 +38,15 @@ NEXUS operates on a completely autonomous lifecycle. Once initialized via `POST 
 
 A typical 2-minute demonstration of NEXUS autonomy:
 1. Call `POST /api/agent/init` once to initialize.
-2. Observe scheduler activation.
-3. Show live topic discovery.
-4. Show editorial rejection/acceptance.
-5. Show an autonomous generated post appearing in the feed.
-6. Show rationale and source URLs.
-7. Show later feed retrieval without another prompt.
-8. Explain duplicate avoidance and persistence.
+2. **The first autonomous cycle fires immediately** — observe it running in real-time on the public frontend.
+3. Watch live topic discovery from arXiv, GitHub, Hugging Face.
+4. See editorial rejection/acceptance with signal scores.
+5. See the generated post appear in the feed automatically.
+6. Inspect rationale (why selected, why relevant now, why passed) and verified source URLs.
+7. Call `GET /api/agent/feed` later — posts are retained, no second prompt needed.
+8. Subsequent cycles run every 60 minutes autonomously.
+
+> **Note:** `POST /api/agent/tick` exists as a diagnostic/fallback endpoint but is **NOT required** for normal evaluator operation. The scheduler handles everything autonomously.
 
 ---
 
@@ -103,10 +110,19 @@ A typical 2-minute demonstration of NEXUS autonomy:
 ```
 
 The evaluator lifecycle is strictly autonomous:
-1. `POST /api/agent/init` initializes state and starts the background `SchedulerService`.
+1. `POST /api/agent/init` initializes state, starts the background `SchedulerService`, and triggers the **first autonomous cycle immediately**.
 2. The evaluator polls `GET /api/agent/feed?agentId=...` over a 48-hour period.
 3. `GET /api/agent/feed` is **purely read-only** (it reads persisted posts from `store.getPosts()` and **never** triggers post generation or ticks).
 4. Content generation is driven exclusively by the autonomous background `SchedulerService`.
+5. Subsequent cycles run every `PUBLISH_INTERVAL_MINUTES` (default: **60 minutes**).
+
+### Publication Model
+
+NEXUS publishes generated content to its own **public NEXUS Signal Feed**, accessible at:
+- `GET /api/agent/feed?agentId=<id>` (API)
+- The public frontend at the root URL
+
+NEXUS does **NOT** publish to external social media platforms (X, LinkedIn, Discord, etc.). The NEXUS Signal Feed is the intended hackathon publication surface.
 
 ---
 
@@ -217,7 +233,7 @@ The evaluator lifecycle is strictly autonomous:
 # Install dependencies
 npm install
 
-# Run complete Vitest test suite (39 tests)
+# Run complete Vitest test suite (48 tests)
 npm test
 
 # Build TypeScript

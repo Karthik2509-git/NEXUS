@@ -183,6 +183,97 @@ html, body {
 
 .mono-small { font-size: 0.7rem; color: var(--text-dim); word-break: break-all; }
 
+/* ---------- Cycle Status Block ---------- */
+
+.cycle-block {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.cycle-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cycle-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+}
+
+.cycle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  padding: 4px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: var(--surface);
+  transition: all 0.3s ease;
+}
+
+.cycle-badge.status-running {
+  color: #f5c542;
+  border-color: rgba(245, 197, 66, 0.4);
+  animation: badge-pulse 1.8s ease-in-out infinite;
+}
+
+.cycle-badge.status-published {
+  color: var(--signal);
+  border-color: var(--signal-dim);
+}
+
+.cycle-badge.status-all_rejected,
+.cycle-badge.status-no_topics {
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+
+.cycle-badge.status-error,
+.cycle-badge.status-not_initialized {
+  color: var(--reject);
+  border-color: rgba(255, 122, 89, 0.3);
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.cycle-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px 20px;
+}
+
+.cm-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cm-key {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.cm-val {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
 /* ---------- Feed ---------- */
 
 .feed-section {

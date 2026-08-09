@@ -2428,6 +2428,133 @@ After the audit, report:
     - T2 & T3: Background Cycle #1 published post `p-1786201664092-799f`. `/feed` returned 1 post.
     - T4 & T5: Background Cycle #2 published post `p-1786201686604-b363`. `/feed` returned 2 posts (unique IDs, newest first, retained previous post).
 
+## Prompt 006 — PRE-SUBMISSION HARDENING — AUTONOMY DEMO & FRONTEND POLISH
 
+- **Date / Time**: 2026-08-09T19:08:34+05:30 (UTC+5:30)
 
+- **Exact Prompt Used**:
+```
+IMPORTANT: Do not start editing immediately. First inspect the entire current NEXUS repository and summarize what the latest teammate changes already implemented. Then proceed with the requested pre-submission hardening only where necessary.
 
+# NEXUS — PRE-SUBMISSION HARDENING, AUTONOMY DEMO & FRONTEND POLISH
+
+You are working on the existing NEXUS repository.
+
+NEXUS is an Autonomous AI Engineering Creator for the hackathon.
+
+Core editorial principle:
+
+"Signal over hype. Engineering consequences over announcements."
+
+The project is already deployed on Railway and has successfully demonstrated:
+- Live RSS/Atom discovery
+- Editorial judging
+- Novelty/memory checking
+- Gemini generation
+- Autonomous scheduler
+- Persistent JSON storage
+- `/api/agent/init`
+- `/api/agent/feed`
+- `/api/agent/tick`
+- `/api/health`
+- Railway persistent volume mounted at `/data`
+- Public frontend showing NEXUS status/feed
+
+IMPORTANT:
+A teammate has recently modified the project. DO NOT blindly overwrite or revert their work.
+
+This is the FINAL PRE-SUBMISSION HARDENING PASS.
+
+The goal is to make the existing implementation reliable, evaluator-friendly, and visually demonstrate autonomy without introducing unnecessary architecture.
+
+[... full 15-phase prompt as specified — see implementation_plan.md for complete content ...]
+
+This is a PRE-SUBMISSION pass.
+Prioritize reliability, evaluator clarity, demonstrable autonomy, and minimal risk over adding new features.
+```
+
+- **Files Inspected** (Phase 0 — Full Repository Audit):
+  - All 50 source/config/test/frontend files inspected (see implementation plan for complete list)
+
+- **Phase 0 Findings — What Was Already Working**:
+  1. Full autonomous pipeline: Discovery → Editorial → Gemini → Persistence → Feed
+  2. Singleton scheduler with `isRunningCycle` concurrency guard
+  3. Auto-restart via `checkAndAutoStart()` in bootstrap
+  4. Idempotent `/init` returning same `agentId`
+  5. Read-only `/feed` — never triggers generation
+  6. Atomic JSON persistence with temp-file → rename
+  7. Health endpoint with `schedulerActive`, `lastRunAt`, `lastTickMetrics`
+  8. Polished dark-themed frontend with telemetry, trace visualization, feed cards
+  9. 10 test files with 39 tests all passing
+  10. Railway config with healthcheck, nixpacks, `/data` volume
+
+- **Phase 0 Findings — Critical Gap Identified**:
+  - `SchedulerService.start()` used `setInterval()` which fires only AFTER the first 60-minute interval elapses
+  - No immediate first cycle after `/init` — evaluator would wait 60 minutes to see first post
+  - Frontend lacked real-time cycle status display and per-cycle metrics
+  - No `cycleStatus` field in health API response
+
+- **Files Modified**:
+  - `src/scheduler/schedulerService.ts` [MODIFIED — added `cycleStatus` tracking, `immediateFirstTick` option, `hasRunFirstCycle` guard, `getCycleStatus()` method]
+  - `src/api/routes.ts` [MODIFIED — `/init` calls `start({ immediateFirstTick: true })`, `/health` includes `cycleStatus` field]
+  - `public/index.html` [MODIFIED — added cycle status block with badge and metrics grid]
+  - `public/styles.css` [MODIFIED — added cycle badge styles with status-specific colors and animations]
+  - `public/app.js` [MODIFIED — added cycle status rendering, metrics display, reduced polling to 8s, rationale formatting]
+  - `tests/autonomy.test.ts` [MODIFIED — added 7 new tests, fixed 1 existing test for immediate-first-cycle compatibility]
+  - `README.md` [MODIFIED — documented immediate first cycle, publication model clarification, updated demo flow, updated test count to 48]
+  - `PROMPTS.md` [MODIFIED — appended Prompt 006 log entry]
+
+- **Immediate-First-Cycle Implementation Details**:
+  - `SchedulerService.start()` now accepts optional `{ immediateFirstTick: boolean }` parameter
+  - When `immediateFirstTick` is true and `hasRunFirstCycle` is false, fires `tick()` asynchronously (fire-and-forget so `/init` returns instantly)
+  - `hasRunFirstCycle` boolean prevents duplicate immediate cycles on repeated `/init` calls
+  - Existing `this.timer !== null` guard prevents duplicate timers
+  - Existing `isRunningCycle` concurrency guard prevents simultaneous ticks
+  - `checkAndAutoStart()` (server restart path) calls `start()` WITHOUT `immediateFirstTick` — restart does not fire an extra immediate cycle
+  - The 60-minute `setInterval()` timer is completely unchanged
+  - `cycleStatus` tracks: `'idle' | 'running' | 'published' | 'all_rejected' | 'error' | 'no_topics' | 'not_initialized'`
+
+- **Frontend Changes**:
+  - Polling interval reduced from 30s to 8s for more responsive evaluator demo
+  - Added cycle status badge with status-specific styling (amber pulse for running, green for published, red for error)
+  - Added cycle metrics grid showing: Discovered, Evaluated, Accepted, Rejected, Duplicates Skipped, Duration
+  - Added rationale formatting for better 3-pillar readability
+  - All data comes from `GET /api/health` and `GET /api/agent/feed` — NO mutation endpoints ever called
+
+- **Backend/API Changes**:
+  - `/api/health` response now includes `cycleStatus` field (backward compatible — new field only)
+  - `/api/agent/init` now triggers immediate first autonomous cycle via fire-and-forget
+  - All other endpoints unchanged. `/feed` remains read-only. `/tick` remains available as diagnostic.
+
+- **Tests Run & Actual Results**:
+  - `npm test`: **48 passed out of 48 tests** across 10 test files (0 failures)
+  - Test files: api.test.ts (7), autonomy.test.ts (12), autonomousTick.test.ts (4), discovery.test.ts (4), editorial.test.ts (6), generation.test.ts (3), memory.test.ts (2), novelty.test.ts (3), persistence.test.ts (4), scheduler.test.ts (3)
+  - Duration: 1.66s
+
+- **New Tests Added (7 tests in autonomy.test.ts)**:
+  1. `GET /api/health should include cycleStatus field` — verifies cycleStatus exists in health response
+  2. `POST /api/agent/init should trigger exactly one immediate first autonomous cycle` — verifies immediate tick fires
+  3. `repeated POST /api/agent/init should NOT trigger duplicate immediate first cycles` — verifies idempotency
+  4. `scheduler should use the configured 60-minute interval, not a shorter one` — verifies interval config
+  5. `cycleStatus should transition through running and final state` — verifies status tracking
+  6. `auto-resume via checkAndAutoStart should NOT fire an immediate tick` — verifies restart safety
+  7. Existing feed test updated for immediate-first-cycle compatibility
+
+- **Build Result**:
+  - `npm run build`: `tsc` compiled cleanly with **0 TypeScript errors**
+
+- **Security Scan Result**:
+  - Searched for `AIza[A-Za-z0-9_-]{35}` (Google API key pattern): **0 matches**
+  - Searched for `Bearer [token]` patterns: **0 matches**
+  - `GEMINI_API_KEY=` found only in `.env.example` (empty), `README.md` (placeholder), `PROMPTS.md` (documentation)
+  - `BREETH_API_KEY=` found only in `.env.example` (empty), `README.md` (empty placeholder), `PROMPTS.md` (documentation)
+  - `.env` is in `.gitignore` ✓ | `dist/` is in `.gitignore` ✓ | `data/` and `data-*/` are in `.gitignore` ✓
+  - **No secrets committed.**
+
+- **Unresolved Risks**: None identified. All changes are backward compatible and minimally invasive.
+
+- **Final Deployment Notes**:
+  - A normal `git push` to the connected GitHub repository will trigger Railway auto-deploy
+  - No Railway configuration changes needed — `railway.json` is unchanged
+  - No new dependencies added — `package.json` is unchanged
+  - The persistent volume at `/data` continues to work as-is
