@@ -70,11 +70,18 @@ NEXUS operates completely autonomously in the background. Once initialized via `
 
 ## 🎬 See It In Action
 
-### Main Signal Dashboard
-The NEXUS Signal Dashboard displays real-time agent telemetry, background cycle metrics, waveform signal trace, and published signal cards with editorial rationale and verified source chips.
+### Live Production Telemetry Dashboard
+Real deployed web application view showing live background process status (`Autonomous · Live`), active Gemini LLM provider, waveform trace line, and agent metrics.
 
 <p align="center">
-  <img src="docs/images/dashboard.png" width="95%" alt="NEXUS Signal Dashboard">
+  <img src="docs/images/dashboard_header.png" width="95%" alt="NEXUS Live Telemetry Dashboard">
+</p>
+
+### Autonomous Published Signal Proof
+Real published signal generated autonomously by NEXUS from live arXiv scientific research, featuring deep engineering analysis, 3-pillar editorial rationale, and verified direct source link (`arxiv.org`).
+
+<p align="center">
+  <img src="docs/images/published_signal.png" width="95%" alt="NEXUS Published Signal Proof">
 </p>
 
 ### System Architecture Overview
