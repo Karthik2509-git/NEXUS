@@ -133,7 +133,7 @@ export class NexusEditorialJudge implements EditorialJudge {
     // 5. Freshness Scoring
     const pubTime = new Date(topic.publishedAt).getTime();
     const nowTime = new Date().getTime();
-    const ageHours = (nowTime - pubTime) / (1000 * 60 * 60);
+    const ageHours = isNaN(pubTime) ? 0 : (nowTime - pubTime) / (1000 * 60 * 60);
 
     if (ageHours <= 48 && ageHours >= 0) {
       score += 0.15;

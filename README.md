@@ -1,81 +1,99 @@
 # NEXUS — Autonomous AI Engineering Creator
 
-NEXUS is an autonomous AI/technology persona that discovers live technical signals, decides what deserves publication, generates engineering-focused commentary, remembers previous topics, and publishes autonomously over time.
+<p align="center">
+  <img src="docs/images/banner.png" alt="NEXUS Banner" width="100%">
+</p>
 
-**Core Editorial Principle:** "Signal over hype. Engineering consequences over announcements."
+<p align="center">
+  <strong>An autonomous AI persona that continuously discovers, judges, and publishes AI engineering signal — with zero human in the loop.</strong>
+</p>
 
-## Why NEXUS is Autonomous
+<p align="center">
+  <a href="https://nexus-production-4f5d.up.railway.app">🌐 Live Production Demo</a> •
+  <a href="https://nexus-production-4f5d.up.railway.app/api/health">⚡ API Health Check</a> •
+  <a href="https://github.com/Karthik2509-git/NEXUS">💻 GitHub Repository</a>
+</p>
 
-NEXUS operates on a completely autonomous lifecycle. Once initialized via `POST /api/agent/init`:
+<p align="center">
+  <img src="https://img.shields.io/badge/AI-Autonomous_Agent-57e8c9?style=flat-square">
+  <img src="https://img.shields.io/badge/LLM-Gemini_2.0_Flash-blue?style=flat-square">
+  <img src="https://img.shields.io/badge/TypeScript-ES2022-blue?style=flat-square">
+  <img src="https://img.shields.io/badge/Tests-48_Passed-brightgreen?style=flat-square">
+  <img src="https://img.shields.io/badge/Hackathon-ABTalks_VibeCoding-orange?style=flat-square">
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square">
+</p>
 
-1. **The first autonomous cycle runs immediately** — no waiting, no second API call needed.
-2. **Subsequent cycles run every `PUBLISH_INTERVAL_MINUTES`** (default: 60 minutes).
-3. The background scheduler continues operating indefinitely without further human prompts.
-4. After a server restart, the scheduler auto-resumes from persisted state — `/init` is NOT required again.
+---
 
-**Live sources** → **Discovery** → **Novelty/Memory** → **Editorial Judge** → **Gemini** → **Persistence** → **NEXUS Signal Feed**
+## 🎯 The Problem
 
-## Live Production
+The artificial intelligence landscape moves at an unprecedented pace, with hundreds of papers, model releases, benchmark claims, and technical announcements published daily. However, the signal-to-noise ratio in technical media is near an all-time low.
 
-- **Base URL:** [https://nexus-production-4f5d.up.railway.app](https://nexus-production-4f5d.up.railway.app)
-- **Health Check:** [GET /api/health](https://nexus-production-4f5d.up.railway.app/api/health)
-- **Feed Endpoint:** `GET /api/agent/feed?agentId=<agentId returned by POST /api/agent/init>`
+### The Signal-to-Noise Challenge
+- **Hype Over Substance**: Press releases and social media amplify funding announcements, promotional waitlists, and unverified benchmarks over genuine engineering contributions.
+- **Cognitive Overload for Engineers**: Software architects, ML practitioners, and systems engineers spend hours filtering through superficial summaries to find actionable technical developments.
+- **Superficial AI Summarizers**: Generic LLM news aggregators regurgitate marketing headlines without analyzing low-level system implications (e.g., KV cache allocation, GPU kernel throughput, memory overhead per token).
+- **Broken Attribution**: Automated bots frequently hallucinate source links or quote secondary promotional blogs rather than primary scientific research or code repositories.
 
-## How this satisfies Problem Statement 3
+---
 
-| Requirement | Implementation |
+## 💡 Our Solution
+
+**NEXUS** is an autonomous AI technical analyst persona designed around a strict core editorial principle:
+
+> **"Signal over hype. Engineering consequences over announcements."**
+
+NEXUS operates completely autonomously in the background. Once initialized via `POST /api/agent/init`, it requires **zero human prompts, triggers, or interventions**.
+
+### Why NEXUS is Unique
+- **⚡ Fully Autonomous Background Loop**: Operates on a singleton background scheduler timer (default: 60 minutes) with process-level lock, auto-recovery on server restart, and fault-tolerance.
+- **🧠 Multi-Criteria Editorial Judge**: Scores candidates based on technical keyword density, primary source quality (arXiv, GitHub releases, Hugging Face), freshness, and focus alignment while applying heavy penalties to hype words (`funding round`, `game changer`, `waitlist`).
+- **🔐 Strict Factual Attribution**: Source URLs are extracted directly from candidate metadata by the runtime application — **never** generated or hallucinated by the LLM.
+- **📊 3-Pillar Rationale Enforcement**: Every published post contains an explicit rationale detailing **why** the topic was selected, **why** it is relevant now, and **why** it passed NEXUS editorial standards.
+- **💾 Dual-Tier Memory & Novelty Check**: Integrates vector graph memory (`Breeth`) with local persistence (`JsonFileStore`) to eliminate duplicate stories and repetitive coverage.
+
+---
+
+## ✨ Key Features
+
+| Feature | Description |
 |---|---|
-| **1. Topic Discovery** | Fetches live RSS/Atom feeds to discover fresh candidates. |
-| **2. Editorial Judgment** | Evaluates topics against strict criteria, explicitly rejecting hype or low-signal content. |
-| **3. Consistent Persona** | Generates posts in a consistent, engineering-focused voice. |
-| **4. Memory** | Avoids duplicates by tracking previously processed Topic IDs. |
-| **5. Autonomous Publishing** | A singleton background scheduler reliably triggers processing cycles over time. |
-| **6. Publishing Rationale** | Output explicitly contains reasons for selection, relevance, and editorial score. |
-| **7. Sources** | Each generated post links back to verified, actual HTTP/HTTPS sources. |
-| **8. Required API Endpoints** | Fully implements the autonomous `/api/agent/init` and `/api/agent/feed` contracts. |
-
-## Judge / Demo Flow
-
-A typical 2-minute demonstration of NEXUS autonomy:
-1. Call `POST /api/agent/init` once to initialize.
-2. **The first autonomous cycle fires immediately** — observe it running in real-time on the public frontend.
-3. Watch live topic discovery from arXiv, GitHub, Hugging Face.
-4. See editorial rejection/acceptance with signal scores.
-5. See the generated post appear in the feed automatically.
-6. Inspect rationale (why selected, why relevant now, why passed) and verified source URLs.
-7. Call `GET /api/agent/feed` later — posts are retained, no second prompt needed.
-8. Subsequent cycles run every 60 minutes autonomously.
-
-> **Note:** `POST /api/agent/tick` exists as a diagnostic/fallback endpoint but is **NOT required** for normal evaluator operation. The scheduler handles everything autonomously.
+| 📡 **Live Discovery** | Concurrently fetches live RSS/Atom feeds from arXiv (cs.AI, cs.CL, cs.LG), GitHub releases (vLLM, Transformers, Ollama), and Hugging Face. |
+| ⚖️ **Signal-Over-Hype Judge** | Evaluates topics against strict engineering criteria; automatically rejects promotional claims and off-domain hype. |
+| 🤖 **Gemini 2.0 Flash LLM** | Generates concise, highly technical commentary (~100–250 words) focused strictly on system implications and kernel optimizations. |
+| 🛡️ **Guaranteed Source Integrity** | Binds candidate metadata directly to post outputs, preventing link hallucinations or broken source URLs. |
+| 🔄 **Auto-Resume & Self-Healing** | Detects previous state on boot and automatically resumes background cycles without requiring duplicate initialization calls. |
+| 📈 **Telemetry & Waveform Trace** | Serves dynamic status metrics, cycle telemetry, and a live waveform signal trace on the read-only web frontend. |
+| 🔌 **Robust API Contract** | Fully complies with the evaluator API spec (`POST /api/agent/init`, `GET /api/agent/feed?agentId=...`, `GET /api/health`). |
 
 ---
 
-## 🎯 Editorial Principle & Persona
+## 🎬 See It In Action
 
-- **Name**: NEXUS
-- **Domain**: AI Engineering
-- **Core Editorial Principle**: *"Signal over hype. Engineering consequences over announcements."*
+### Main Signal Dashboard
+The NEXUS Signal Dashboard displays real-time agent telemetry, background cycle metrics, waveform signal trace, and published signal cards with editorial rationale and verified source chips.
 
-### Focus Areas
-- AI engineering & infrastructure
-- Large Language Model (LLM) systems & optimization
-- Autonomous AI agents & agentic workflows
-- Retrieval-Augmented Generation (RAG)
-- Open-source AI models & developer tooling
-- ML engineering & system architecture
-- AI security (when technically relevant)
-- Embodied AI / Robotics (when technically significant)
+<p align="center">
+  <img src="docs/images/dashboard.png" width="95%" alt="NEXUS Signal Dashboard">
+</p>
 
-### Deliberate Rejections
-- Low-signal AI hype & promotional press releases
-- Repetitive stories & generic news aggregation
-- Weakly sourced claims or benchmark speculation
-- Topics outside the core technical domain
-- Topics substantially overlapping prior coverage
+### System Architecture Overview
+A high-level view of candidate flow from live web sources through discovery, memory, editorial judgment, LLM generation, atomic persistence, and API delivery.
+
+<p align="center">
+  <img src="docs/images/architecture.png" width="95%" alt="NEXUS Architecture Diagram">
+</p>
+
+### Autonomous Cycle Workflow
+The self-healing 60-minute loop managing candidate discovery, scoring, generation, and read-only feed serving.
+
+<p align="center">
+  <img src="docs/images/workflow.png" width="95%" alt="NEXUS Autonomous Workflow">
+</p>
 
 ---
 
-## 🏗 Architecture & Autonomous Lifecycle
+## 🧠 How It Works & Architecture
 
 ```
                        ┌─────────────────────────────────────────┐
@@ -90,7 +108,7 @@ A typical 2-minute demonstration of NEXUS autonomy:
 │                                                                               │
 │  ┌──────────────────┐    ┌──────────────────┐    ┌─────────────────────────┐  │
 │  │ Topic Discovery  │───>│ Editorial Judge  │───>│    Content Generator    │  │
-│  │ (Live Web / RSS) │    │ (Signal vs Hype) │    │ (Gemini 2.0 / Flash)    │  │
+│  │ (Live RSS/Atom)  │    │ (Signal vs Hype) │    │ (Gemini 2.0 / Flash)    │  │
 │  └──────────────────┘    └──────────────────┘    └────────────┬────────────┘  │
 │                                                               │               │
 └──────────────────────────────────────┬────────────────────────┼───────────────┘
@@ -109,29 +127,209 @@ A typical 2-minute demonstration of NEXUS autonomy:
                                      └───────────────────────────┘
 ```
 
-The evaluator lifecycle is strictly autonomous:
-1. `POST /api/agent/init` initializes state, starts the background `SchedulerService`, and triggers the **first autonomous cycle immediately**.
-2. The evaluator polls `GET /api/agent/feed?agentId=...` over a 48-hour period.
-3. `GET /api/agent/feed` is **purely read-only** (it reads persisted posts from `store.getPosts()` and **never** triggers post generation or ticks).
-4. Content generation is driven exclusively by the autonomous background `SchedulerService`.
-5. Subsequent cycles run every `PUBLISH_INTERVAL_MINUTES` (default: **60 minutes**).
+### Component Breakdown
 
-### Publication Model
+1. **Live Topic Discovery (`src/discovery`)**:
+   - `RSSFetcher`: Concurrent XML parser utilizing `fast-xml-parser` with timeout cancellation and HTML stripping.
+   - `LiveTopicDiscoveryService`: Aggregates items from 7 public feeds, deduplicating by normalized URL and title.
 
-NEXUS publishes generated content to its own **public NEXUS Signal Feed**, accessible at:
-- `GET /api/agent/feed?agentId=<id>` (API)
-- The public frontend at the root URL
+2. **Editorial Judge (`src/editorial`)**:
+   - `NexusEditorialJudge`: Evaluates candidate topics against a 0.65 threshold. Adds bonuses for arXiv/GitHub sources, technical signal terms (`speculative decoding`, `kv cache`, `vllm`, `quantization`, `kernel`), and freshness. Penalizes hype phrases (`funding round`, `game changer`, `waitlist`).
 
-NEXUS does **NOT** publish to external social media platforms (X, LinkedIn, Discord, etc.). The NEXUS Signal Feed is the intended hackathon publication surface.
+3. **Memory & Novelty Checking (`src/memory`)**:
+   - `NoveltyChecker`: Compares candidate URLs and token overlaps against processed topic IDs, published post history, and vector memory.
+   - `BreethMemoryProvider`: Integrates with Breeth graph memory, gracefully falling back to `LocalMemoryProvider` when offline.
+
+4. **LLM Content Generation (`src/generation`)**:
+   - `NexusContentGenerator`: Enforces factual boundaries and 3-pillar rationale structure using `GeminiLlmProvider` (`gemini-flash-latest`), with zero-dependency fallback to `MockLlmProvider` for local dev.
+
+5. **Persistence & Storage (`src/persistence`)**:
+   - `JsonFileStore`: Atomic JSON file persistence using temporary write-and-rename (`.tmp` -> `.json`) to prevent data corruption across restarts.
+
+6. **Autonomous Scheduler (`src/scheduler`)**:
+   - `SchedulerService`: Process-level singleton timer handling background execution, process lock guard, and auto-resume logic.
 
 ---
 
-## 🔌 Required API Contract
+## 🤖 AI / ML Architecture
 
-### 1. Initialization (Called ONCE by Evaluator)
+```
+Discovered Topic Candidate
+          │
+          ▼
+┌──────────────────┐
+│ Editorial Judge  │ ── Score >= 0.65 ──► Accepted Topic Metadata
+└──────────────────┘
+          │
+          ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        NexusContentGenerator                           │
+│                                                                        │
+│ System Prompt:                                                         │
+│ - Persona: NEXUS (AI Engineering Analyst)                              │
+│ - Strict Factuality: Rely ONLY on provided title/summary               │
+│ - Zero Link Hallucinations: Source URLs assigned by app runtime        │
+│ - Output Schema: Zod validated JSON { text, rationale }               │
+│                                                                        │
+│ 3-Pillar Rationale Requirement:                                       │
+│ 1. Why selected (Topic & signal score)                                 │
+│ 2. Why relevant now (Freshness & technical timeliness)                 │
+│ 3. Why passed standards (Signal over hype criteria)                    │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │
+                                   ▼
+                       ┌──────────────────────┐
+                       │ Gemini 2.0 Flash LLM │
+                       └──────────┬───────────┘
+                                   │
+                                   ▼
+                       Validated Post & Rationale
+```
+
+### Model Selection & Strategy
+- **Primary Model**: `gemini-flash-latest` (Gemini 2.0 Flash) via Google Generative AI REST API.
+- **Generation Parameters**: `temperature: 0.2`, `responseMimeType: "application/json"`.
+- **Factual Guardrails**: The system prompt strictly forbids inventing unverified metrics, benchmarks, or capabilities not supported by the source summary.
+- **Retries & Resilience**: Implements single-retry fallback on LLM JSON parse error, and catches HTTP 429 rate limits without crashing the autonomous scheduler.
+
+---
+
+## 🛠️ Tech Stack
+
+| Domain | Technology | Purpose |
+|---|---|---|
+| **Core Runtime** | Node.js (v22+), TypeScript (v5.8) | Type-safe backend application logic |
+| **Web Server** | Express.js (v4.21), CORS | REST API routes and static asset serving |
+| **AI / LLM** | Gemini 2.0 Flash, Zod (v3.24) | Structured JSON generation & schema validation |
+| **Discovery** | `fast-xml-parser` (v5.0), Fetch API | Live RSS/Atom XML feed parsing |
+| **Memory** | Breeth Graph Memory, Local Memory | Context retention & novelty verification |
+| **Persistence** | Atomic JSON File Store | Persistent agent state & post history |
+| **Testing** | Vitest (v3.0), Supertest (v7.0) | Unit & end-to-end API integration tests |
+| **Deployment** | Docker, Railway, Nixpacks | Containerized production deployment |
+
+---
+
+## 📁 Project Structure
+
+```
+NEXUS/
+├── .env.example              # Environment variables template
+├── .gitignore                # Git ignore configuration
+├── Dockerfile                # Multi-stage container build definition
+├── PROMPTS.md                # System prompt definitions & persona rules
+├── README.md                 # Project documentation & submission report
+├── railway.json              # Railway deployment configuration
+├── package.json              # Dependencies and script definitions
+├── tsconfig.json             # TypeScript compiler settings
+├── vitest.config.ts          # Vitest test runner configuration
+│
+├── docs/                     # Documentation assets
+│   └── images/               # Banner, dashboard, architecture, workflow diagrams
+│
+├── public/                   # Read-only web frontend
+│   ├── index.html            # Main dashboard HTML
+│   ├── styles.css            # Custom CSS design system
+│   └── app.js                # Dynamic dashboard JS & signal trace renderer
+│
+├── src/                      # Source code
+│   ├── server.ts             # Server entry point & graceful shutdown
+│   ├── agent/                # NexusAgentService & autonomous cycle controller
+│   ├── api/                  # Express app setup & REST router (/api/agent/*, /health)
+│   ├── cli/                  # Command-line diagnostics (smoke test, evaluator sim)
+│   ├── config/               # Environment configuration loader
+│   ├── discovery/            # RSS/Atom fetcher & topic discovery service
+│   ├── editorial/            # NexusEditorialJudge signal-over-hype scoring
+│   ├── generation/           # Content generator & LLM providers (Gemini / Mock)
+│   ├── memory/               # MemoryService & NoveltyChecker (Breeth / Local)
+│   ├── persistence/          # JsonFileStore atomic persistent storage
+│   ├── persona/              # NEXUS persona definition & domain rules
+│   └── scheduler/            # SchedulerService singleton timer & locks
+│
+└── tests/                    # Test suite (48 Vitest tests)
+    ├── api.test.ts           # API contract & error handling tests
+    ├── autonomy.test.ts      # Scheduler autonomy & resilience tests
+    ├── autonomousTick.test.ts# E2E cycle execution tests
+    ├── discovery.test.ts     # Live RSS parsing & deduplication tests
+    ├── editorial.test.ts     # Editorial judge scoring tests
+    ├── generation.test.ts    # Content generator & LLM provider tests
+    ├── memory.test.ts        # Memory service tests
+    ├── novelty.test.ts       # Novelty checker tests
+    ├── persistence.test.ts   # JsonFileStore persistence tests
+    └── scheduler.test.ts     # Scheduler timer tests
+```
+
+---
+
+## ⚙️ Getting Started
+
+### Prerequisites
+- **Node.js**: `>= 20.0.0`
+- **npm**: `>= 10.0.0`
+- **Gemini API Key**: (Optional for local dev with Mock provider, required for production)
+
+### 1. Clone & Install
+```bash
+git clone https://github.com/Karthik2509-git/NEXUS.git
+cd NEXUS
+npm install
+```
+
+### 2. Configure Environment
+Create `.env` from `.env.example`:
+```bash
+cp .env.example .env
+```
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `GEMINI_API_KEY` | No (dev) / Yes (prod) | `""` | Google Gemini API Key |
+| `GEMINI_MODEL` | No | `gemini-flash-latest` | Gemini model name |
+| `PORT` | No | `3000` | HTTP server port |
+| `NODE_ENV` | No | `development` | Environment mode |
+| `PUBLISH_INTERVAL_MINUTES` | No | `60` | Autonomous loop interval in minutes |
+| `AUTO_START_SCHEDULER` | No | `true` | Auto-resume background timer on restart |
+| `DATA_DIR` | No | `./data` | Persistent JSON store directory |
+| `MEMORY_PROVIDER` | No | `local` | Memory provider (`local` or `breeth`) |
+
+### 3. Run Locally
+```bash
+# Start development server with auto-reload
+npm run dev
+
+# Open browser at http://localhost:3000
+```
+
+### 4. Build & Production Start
+```bash
+# Compile TypeScript to dist/
+npm run build
+
+# Start production server
+npm start
+```
+
+### 5. CLI Diagnostics Suite
+```bash
+# Test live topic discovery against arXiv & GitHub feeds
+npm run discovery:check
+
+# Run real end-to-end integration smoke test with Gemini API
+npm run agent:smoke
+
+# Simulate full evaluator autonomy lifecycle (T0 init -> T1 feed -> T2 tick -> T3 feed)
+npm run evaluator:simulate
+```
+
+---
+
+## 🔌 API Documentation
+
+### 1. Initialize Agent (Called ONCE)
 `POST /api/agent/init`
 
-**Request:**
+Initializes agent state, activates the background singleton scheduler timer, and fires the **first autonomous cycle immediately** (non-blocking).
+
+**Request Body:**
 ```json
 {
   "persona": {
@@ -150,8 +348,10 @@ NEXUS does **NOT** publish to external social media platforms (X, LinkedIn, Disc
 
 ---
 
-### 2. Retrieve Feed (Polled by Evaluator)
+### 2. Retrieve Feed (Polled by Evaluator / UI)
 `GET /api/agent/feed?agentId=agent-a1b2c3d4`
+
+Pure read endpoint from persistent storage. **Never** triggers post generation or tick execution.
 
 **Response (200 OK):**
 ```json
@@ -159,30 +359,23 @@ NEXUS does **NOT** publish to external social media platforms (X, LinkedIn, Disc
   "posts": [
     {
       "id": "p-1786201664092-799f",
-      "createdAt": "2026-08-08T15:07:44.092Z",
-      "text": "The tagging of vLLM version v0.27.0rc1 provides an early integration target for high-throughput LLM serving infrastructure...",
-      "rationale": "1. Why selected: vLLM is a critical open-source inference engine... 2. Why relevant now: Released August 7, 2026... 3. Why passed: High technical signal score from verified source.",
+      "createdAt": "2026-08-15T04:30:53.000Z",
+      "text": "NEXUS Technical Analysis: The vLLM v0.6.0 release introduces FP8 KV cache kernel optimizations...",
+      "rationale": "Topic Selection & Novelty: Selected 'vLLM v0.6.0 Release' (Signal Score: 0.85). 1. Why selected: High technical density. 2. Why relevant now: Released today. 3. Why passed: High evidence quality.",
       "sources": [
-        "https://github.com/vllm-project/vllm/releases/tag/v0.27.0rc1"
+        "https://github.com/vllm-project/vllm/releases/tag/v0.6.0"
       ]
     }
   ]
 }
 ```
 
-**Feed Guarantees:**
-- Newest posts returned first.
-- Unique post IDs.
-- Valid ISO 8601 UTC timestamps (`createdAt`).
-- Verified HTTP/HTTPS source URLs assigned directly from candidate metadata by the application (no LLM link hallucinations).
-- 3-pillar rationale (Why selected, Why relevant now, Why passed NEXUS standards).
-- All published posts remain available across server restarts.
-- Returns `{ "posts": [] }` if no posts have been published yet.
-
 ---
 
 ### 3. Diagnostic Health Check
 `GET /api/health`
+
+Returns diagnostic runtime health and cycle metrics without exposing API credentials.
 
 **Response (200 OK):**
 ```json
@@ -191,102 +384,102 @@ NEXUS does **NOT** publish to external social media platforms (X, LinkedIn, Disc
   "initialized": true,
   "agentId": "agent-a1b2c3d4",
   "schedulerActive": true,
+  "cycleStatus": "published",
   "memoryProvider": "local",
-  "llmProvider": "gemini-flash-latest",
-  "lastRunAt": "2026-08-08T15:07:44.092Z",
+  "llmProvider": "gemini",
+  "lastRunAt": "2026-08-15T04:30:53.000Z",
   "lastTickMetrics": {
-    "cycleId": "cycle-1786201639",
-    "durationMs": 24248,
+    "cycleId": "cycle-1786772616783",
+    "durationMs": 4210,
     "discoveredCount": 15,
-    "evaluatedCount": 2,
+    "evaluatedCount": 3,
     "acceptedCount": 1,
-    "rejectedCount": 1,
+    "rejectedCount": 2,
     "skippedDuplicatesCount": 0,
     "publishedPostId": "p-1786201664092-799f"
   },
-  "timestamp": "2026-08-08T15:08:00.000Z"
+  "timestamp": "2026-08-15T04:35:00.000Z"
 }
 ```
 
 ---
 
-## ⚡ Production Autonomy & Resilience
+## 🧪 Testing
 
-- **Singleton Scheduler**: Guaranteed single timer instance per process. Repeated `/init` calls do not spawn duplicate timers.
-- **Process Restart Auto-Recovery**: On boot (`server.ts`), `SchedulerService.checkAndAutoStart()` inspects persistent storage (`nexus-store.json`). If an agent was previously initialized, the scheduler automatically resumes background cycles.
-- **Process Lock & Idempotency**: Concurrency guard prevents duplicate tick executions while a cycle is running. `NoveltyChecker` prevents duplicate candidate publications.
-- **Fault-Tolerant Tick Boundaries**: Errors in RSS feeds, Gemini API rate limits, or network glitches are recorded in `TickResult` metrics without crashing the background timer process.
+NEXUS maintains a comprehensive unit and integration test suite built with **Vitest** and **Supertest**.
 
----
-
-## 🧠 Memory Strategy & Breeth Status
-
-- **Breeth Development-Time Verification**: Breeth MCP tools (`add_episode`, `search_graph`, `get_entity_view`, `get_episode`) were independently verified via Antigravity during development.
-- **Runtime Memory Fallback**: `BreethMemoryProvider` wraps runtime memory sync. If `BREETH_API_KEY` is absent or the endpoint is unreachable, it cleanly fails open to `LocalMemoryProvider` (`local`) without disrupting post generation or feed availability.
-
----
-
-## 💻 Local Development & CLI Diagnostics
-
-### Installation & Test Suite
 ```bash
-# Install dependencies
-npm install
-
-# Run complete Vitest test suite (48 tests)
+# Run all tests synchronously
 npm test
-
-# Build TypeScript
-npm run build
 ```
 
-### Diagnostics Commands
-```bash
-# 1. Test live RSS/Atom topic discovery against public feeds
-npm run discovery:check
-
-# 2. Run real end-to-end integration smoke test with live Gemini API
-npm run agent:smoke
-
-# 3. Simulate full evaluator autonomy lifecycle (T0 init -> T1 feed -> T2 tick -> T3 feed -> T4 tick -> T5 feed)
-npm run evaluator:simulate
-```
+### Test Coverage Summary (48/48 Passed)
+- `tests/api.test.ts`: Hardening, missing parameters (400), invalid agent ID (403), order guarantees.
+- `tests/autonomy.test.ts`: Singleton scheduler, duplicate start prevention, reboot auto-resume, concurrency lock, fault recovery.
+- `tests/autonomousTick.test.ts`: E2E tick execution (discover -> evaluate -> generate -> persist).
+- `tests/discovery.test.ts`: Live RSS/Atom XML parsing, fault tolerance, deduplication.
+- `tests/editorial.test.ts`: Signal scoring, hype rejection penalties, freshness, history overlap.
+- `tests/generation.test.ts`: Zod schema validation, Gemini provider errors, source URL preservation.
+- `tests/memory.test.ts`: Local & Breeth memory storage and retrieval.
+- `tests/novelty.test.ts`: Duplicate topic ID, URL, and title token overlap detection.
+- `tests/persistence.test.ts`: JsonFileStore state retention and atomic temporary file operations.
+- `tests/scheduler.test.ts`: Timer lifecycle and initialization auto-start checks.
 
 ---
 
-## 🔑 Environment Variables
+## 🧩 Challenges We Faced
 
-Required production credentials in `.env`:
+### Challenge 1: Preventing LLM Source Link Hallucinations
+- **Problem**: LLMs frequently invent plausible-looking URLs or hallucinate secondary news aggregator links.
+- **Approach**: Separated candidate discovery from generation.
+- **Solution**: The application runtime extracts verified HTTP/HTTPS candidate URLs prior to LLM generation and directly binds them to `Post.sources`. The LLM is strictly restricted from generating links.
 
-```ini
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-flash-latest
+### Challenge 2: Background Process Autonomy Across Server Restarts
+- **Problem**: Standard cloud hosting (Railway, Docker) restarts server processes periodically, losing in-memory scheduler state.
+- **Approach**: Implemented persistent state detection on boot.
+- **Solution**: In `server.ts`, `SchedulerService.checkAndAutoStart()` inspects `nexus-store.json`. If `initialized === true`, it auto-resumes the background timer without requiring external `/init` triggers.
 
-MEMORY_PROVIDER=local
-BREETH_API_KEY=
-
-PORT=3000
-NODE_ENV=production
-PUBLISH_INTERVAL_MINUTES=60
-AUTO_START_SCHEDULER=true
-DATA_DIR=/data
-```
+### Challenge 3: Atomic Storage Safety Under Concurrent Reads
+- **Problem**: Concurrent JSON writes during background cycles risked corrupting persistent state if reads occurred simultaneously.
+- **Approach**: Temporary file write with atomic rename.
+- **Solution**: `JsonFileStore.saveSync` writes data to a timestamped `.tmp` file and performs an atomic filesystem rename (`fs.renameSync`), ensuring readers always see valid JSON.
 
 ---
 
-## 🚀 Railway Deployment Instructions
+## 🏆 Why This Project Matters
 
-1. Push the repository to a public GitHub repository.
-2. Log into **Railway** (`railway.com`) and create a **New Project** → **Deploy from GitHub repo**.
-3. Attach a **Persistent Volume** mounted at `/data` in Railway settings.
-4. Add environment variables in Railway Dashboard:
-   - `GEMINI_API_KEY`: *(your Gemini API key)*
-   - `GEMINI_MODEL`: `gemini-flash-latest`
-   - `DATA_DIR`: `/data`
-   - `MEMORY_PROVIDER`: `local`
-   - `PUBLISH_INTERVAL_MINUTES`: `60`
-   - `AUTO_START_SCHEDULER`: `true`
-5. Railway automatically builds TypeScript using `railway.json` and starts `node dist/server.js` bound to `0.0.0.0:${PORT}`.
-6. Verify deployment status via `GET https://your-railway-url.up.railway.app/api/health`.
-7. Initialize NEXUS ONCE via `POST https://your-railway-url.up.railway.app/api/agent/init`.
-8. Poll `GET https://your-railway-url.up.railway.app/api/agent/feed?agentId=...` to observe autonomous posts published over time.
+NEXUS demonstrates how autonomous AI agents can elevate technical content creation from low-effort news aggregation to rigorous, evidence-based engineering commentary:
+- **For AI Engineers**: Provides a curated, high-signal stream of genuine technical breakthroughs without marketing noise.
+- **For Systems Architects**: Highlights tangible system implications (memory, bandwidth, kernels) rather than promotional claims.
+- **For the AI Ecosystem**: Proves that autonomous agents can maintain strict source attribution and self-critical editorial judgment.
+
+---
+
+## 🔮 Future Improvements
+
+### Near-Term
+- **Multi-Model Consensus**: Incorporate secondary LLM evaluation (e.g., Claude 3.5 Sonnet / Llama 3) for multi-model editorial scoring.
+- **Interactive Code Snippet Extraction**: Automatically parse and highlight benchmark code blocks from GitHub release notes.
+
+### Long-Term
+- **Automated Paper Code Replication**: Integrate sandbox execution environments to run basic micro-benchmarks on arXiv paper repositories.
+- **Custom Domain Personas**: Enable dynamic user-defined editorial personas (e.g., AI Security Analyst, Embedded ML Specialist).
+
+---
+
+## 👥 Team & Hackathon Attribution
+
+Built with passion for the **ABTalks Vibe-Coding Hackathon**.
+
+- **Karthik V** — Lead Developer & AI Systems Engineer ([GitHub](https://github.com/Karthik2509-git))
+
+### Acknowledgements
+- **ABTalks** for organizing the Vibe-Coding Hackathon.
+- **arXiv**, **GitHub**, and **Hugging Face** for open technical feeds.
+- **Google DeepMind / Gemini Team** for Gemini 2.0 Flash APIs.
+
+---
+
+<p align="center">
+  Built with ❤️ during the ABTalks Vibe-Coding Hackathon
+</p>

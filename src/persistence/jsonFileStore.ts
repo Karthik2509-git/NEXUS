@@ -64,6 +64,10 @@ export class JsonFileStore implements PersistenceStore {
   }
 
   private saveSync(data: StorageSchema): void {
+    const dirPath = path.dirname(this.filePath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
     const tempPath = `${this.filePath}.tmp.${Date.now()}`;
     fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tempPath, this.filePath);

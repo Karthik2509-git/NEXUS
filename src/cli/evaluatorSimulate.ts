@@ -12,6 +12,13 @@ import { MockLlmProvider } from '../generation/providers/mockLlmProvider.js';
 import { GeminiLlmProvider } from '../generation/providers/geminiLlmProvider.js';
 import { createApp } from '../api/app.js';
 
+async function waitForCycleCompletion(schedulerService: SchedulerService, maxWaitMs = 15000) {
+  const startTime = Date.now();
+  while (schedulerService.getCycleStatus() === 'running' && Date.now() - startTime < maxWaitMs) {
+    await new Promise((r) => setTimeout(r, 200));
+  }
+}
+
 async function simulateEvaluator() {
   console.log('==================================================');
   console.log('NEXUS Evaluator Autonomy Simulation');
@@ -54,6 +61,9 @@ async function simulateEvaluator() {
     console.log(`    Posts returned: ${feedT1.body.posts.length}`);
     console.log('    PROOF: Calling /feed does NOT trigger post generation!\n');
 
+    // Wait for initial immediate cycle to settle
+    await waitForCycleCompletion(schedulerService);
+
     // T2: Simulate first autonomous cycle passing (Triggered by background scheduler)
     console.log('T2: Autonomous Scheduler executes Cycle #1 (Background interval tick)');
     const tick1: any = await schedulerService.tick();
@@ -93,6 +103,7 @@ async function simulateEvaluator() {
     console.log('==================================================');
   } finally {
     schedulerService.stop();
+    await waitForCycleCompletion(schedulerService, 10000);
     if (fs.existsSync(simDir)) {
       fs.rmSync(simDir, { recursive: true, force: true });
     }
